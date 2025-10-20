@@ -15,20 +15,54 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const TaskListPage(),
+      home: const TaskListScreen(),
     );
   }
 }
 
-class TaskListPage extends StatefulWidget {
-  const TaskListPage({super.key});
+// Task model class
+class Task {
+  String name;
+  bool isCompleted;
 
-  @override
-  State<TaskListPage> createState() => _TaskListPageState();
+  Task({required this.name, this.isCompleted = false});
 }
 
-class _TaskListPageState extends State<TaskListPage> {
+class TaskListScreen extends StatefulWidget {
+  const TaskListScreen({super.key});
+
+  @override
+  State<TaskListScreen> createState() => _TaskListScreenState();
+}
+
+class _TaskListScreenState extends State<TaskListScreen> {
+  // Instance variable: List of tasks
+  final List<Task> _tasks = [];
   final TextEditingController _taskController = TextEditingController();
+
+  // Method to add a new task
+  void addTask(String taskName) {
+    if (taskName.trim().isNotEmpty) {
+      setState(() {
+        _tasks.add(Task(name: taskName));
+      });
+      _taskController.clear();
+    }
+  }
+
+  // Method to toggle task completion status
+  void completeTask(int index) {
+    setState(() {
+      _tasks[index].isCompleted = !_tasks[index].isCompleted;
+    });
+  }
+
+  // Method to remove a task
+  void removeTask(int index) {
+    setState(() {
+      _tasks.removeAt(index);
+    });
+  }
 
   @override
   void dispose() {
@@ -80,7 +114,7 @@ class _TaskListPageState extends State<TaskListPage> {
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
-                    // Logic will be added later
+                    addTask(_taskController.text);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
@@ -105,44 +139,93 @@ class _TaskListPageState extends State<TaskListPage> {
             ),
           ),
 
-          // Task list section (placeholder for now)
+          // Task list section
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: 5, // Placeholder count
-              itemBuilder: (context, index) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            child: _tasks.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.task_alt,
+                          size: 80,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No tasks yet!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add a task to get started',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: _tasks.length,
+                    itemBuilder: (context, index) {
+                      final task = _tasks[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: IconButton(
+                            icon: Icon(
+                              task.isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              color: task.isCompleted
+                                  ? Colors.green
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                            onPressed: () {
+                              completeTask(index);
+                            },
+                          ),
+                          title: Text(
+                            task.name,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              decoration: task.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                              color: task.isCompleted
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              removeTask(index);
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: Icon(
-                      Icons.check_circle_outline,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    title: Text(
-                      'Sample Task ${index + 1}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.grey),
-                      onPressed: () {
-                        // Logic will be added later
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
