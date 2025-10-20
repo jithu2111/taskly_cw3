@@ -20,12 +20,57 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// Priority enum
+enum TaskPriority {
+  low,
+  medium,
+  high;
+
+  String get displayName {
+    switch (this) {
+      case TaskPriority.low:
+        return 'Low';
+      case TaskPriority.medium:
+        return 'Medium';
+      case TaskPriority.high:
+        return 'High';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case TaskPriority.low:
+        return Colors.green;
+      case TaskPriority.medium:
+        return Colors.orange;
+      case TaskPriority.high:
+        return Colors.red;
+    }
+  }
+
+  int get sortOrder {
+    switch (this) {
+      case TaskPriority.high:
+        return 0;
+      case TaskPriority.medium:
+        return 1;
+      case TaskPriority.low:
+        return 2;
+    }
+  }
+}
+
 // Task model class
 class Task {
   String name;
   bool isCompleted;
+  TaskPriority priority;
 
-  Task({required this.name, this.isCompleted = false});
+  Task({
+    required this.name,
+    this.isCompleted = false,
+    this.priority = TaskPriority.medium,
+  });
 }
 
 class TaskListScreen extends StatefulWidget {
