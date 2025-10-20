@@ -124,6 +124,41 @@ class _TaskListScreenState extends State<TaskListScreen> {
     });
   }
 
+  // Method to show priority change dialog
+  void _showPriorityDialog(BuildContext context, int index, Task task) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change Priority'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: TaskPriority.values.map((priority) {
+              return ListTile(
+                leading: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: priority.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                title: Text(priority.displayName),
+                trailing: task.priority == priority
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  changeTaskPriority(index, priority);
+                  Navigator.of(context).pop();
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _taskController.dispose();
