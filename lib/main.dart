@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -71,6 +73,27 @@ class Task {
     this.isCompleted = false,
     this.priority = TaskPriority.medium,
   });
+
+  // Convert Task to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'isCompleted': isCompleted,
+      'priority': priority.name,
+    };
+  }
+
+  // Create Task from JSON
+  factory Task.fromJson(Map<String, dynamic> json) {
+    return Task(
+      name: json['name'] as String,
+      isCompleted: json['isCompleted'] as bool,
+      priority: TaskPriority.values.firstWhere(
+        (e) => e.name == json['priority'],
+        orElse: () => TaskPriority.medium,
+      ),
+    );
+  }
 }
 
 class TaskListScreen extends StatefulWidget {
@@ -86,6 +109,37 @@ class _TaskListScreenState extends State<TaskListScreen> {
   final TextEditingController _taskController = TextEditingController();
   TaskPriority _selectedPriority = TaskPriority.medium;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  // Method to save tasks to SharedPreferences
+  Future<void> _saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tasksJson = _tasks.map((task) => task.toJson()).toList();
+    final tasksString = jsonEncode(tasksJson);
+    await prefs.setString('tasks', tasksString);
+  }
+
+  // Method to load tasks from SharedPreferences
+  Future<void> _loadTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tasksString = prefs.getString('tasks');
+
+    if (tasksString != null) {
+      final List<dynamic> tasksJson = jsonDecode(tasksString);
+      setState(() {
+        _tasks.clear();
+        _tasks.addAll(
+          tasksJson.map((json) => Task.fromJson(json as Map<String, dynamic>))
+        );
+        _sortTasksByPriority();
+      });
+    }
+  }
+
   // Method to add a new task
   void addTask(String taskName, TaskPriority priority) {
     if (taskName.trim().isNotEmpty) {
@@ -94,6 +148,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         _sortTasksByPriority();
       });
       _taskController.clear();
+      _saveTasks();
     }
   }
 
@@ -108,6 +163,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       _tasks[index].priority = newPriority;
       _sortTasksByPriority();
     });
+    _saveTasks();
   }
 
   // Method to toggle task completion status
@@ -115,6 +171,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
     setState(() {
       _tasks[index].isCompleted = !_tasks[index].isCompleted;
     });
+    _saveTasks();
   }
 
   // Method to remove a task
@@ -122,6 +179,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
     setState(() {
       _tasks.removeAt(index);
     });
+    _saveTasks();
   }
 
   // Method to show priority change dialog
