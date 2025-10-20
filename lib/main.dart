@@ -6,18 +6,76 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+// Theme notifier for managing theme state
+class ThemeNotifier extends ChangeNotifier {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  ThemeMode get themeMode => _themeMode;
+
+  ThemeNotifier() {
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDark = prefs.getBool('isDarkMode') ?? false;
+    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    notifyListeners();
+  }
+
+  Future<void> toggleTheme() async {
+    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', _themeMode == ThemeMode.dark);
+  }
+}
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final ThemeNotifier _themeNotifier = ThemeNotifier();
+
+  @override
+  void initState() {
+    super.initState();
+    _themeNotifier.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _themeNotifier.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Taskly',
+      themeMode: _themeNotifier.themeMode,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const TaskListScreen(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: TaskListScreen(themeNotifier: _themeNotifier),
     );
   }
 }
@@ -97,7 +155,9 @@ class Task {
 }
 
 class TaskListScreen extends StatefulWidget {
-  const TaskListScreen({super.key});
+  final ThemeNotifier themeNotifier;
+
+  const TaskListScreen({super.key, required this.themeNotifier});
 
   @override
   State<TaskListScreen> createState() => _TaskListScreenState();
@@ -225,11 +285,24 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = widget.themeNotifier.themeMode == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text('Taskly'),
         elevation: 2,
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            ),
+            tooltip: isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            onPressed: () {
+              widget.themeNotifier.toggleTheme();
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -237,10 +310,10 @@ class _TaskListScreenState extends State<TaskListScreen> {
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, 2),
@@ -424,7 +497,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                         : TextDecoration.none,
                                     color: task.isCompleted
                                         ? Colors.grey
-                                        : Colors.black,
+                                        : Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -439,7 +512,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: task.priority.color.withOpacity(0.2),
+                                    color: task.priority.color.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: task.priority.color,
